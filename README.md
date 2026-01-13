@@ -16,22 +16,11 @@ Zendesk 티켓 데이터를 활용하여 AI Agent가 고객 지원 관련 인사
 ## 📋 사전 요구사항
 
 - Docker
-- Zendesk 계정 및 API 토큰 또는 OAuth 액세스 토큰
+- Zendesk 계정 및 API 토큰
 
 ## ⚡ 빠른 시작
 
-### Docker 실행 (OAuth 액세스 토큰)
-
-```bash
-docker run -d \
-  --name zendesk-mcp \
-  -p 8000:8000 \
-  -e ZENDESK_SUBDOMAIN=your-subdomain \
-  -e ZENDESK_OAUTH_ACCESS_TOKEN=your-oauth-token \
-  public.ecr.aws/saltware/zendesk-mcp:latest
-```
-
-### Docker 실행 (API 토큰)
+### Docker 실행
 
 ```bash
 docker run -d \
@@ -48,42 +37,17 @@ docker run -d \
 | 변수 | 설명 | 필수 |
 |------|------|:----:|
 | `ZENDESK_SUBDOMAIN` | Zendesk 서브도메인 | ✅ |
-| `ZENDESK_EMAIL` | API 사용자 이메일 | ⚠️* |
-| `ZENDESK_API_TOKEN` | API 토큰 | ⚠️* |
-| `ZENDESK_OAUTH_ACCESS_TOKEN` | OAuth 액세스 토큰 | ⚠️* |
+| `ZENDESK_EMAIL` | API 사용자 이메일 | ✅ |
+| `ZENDESK_API_TOKEN` | API 토큰 | ✅ |
 | `MCP_TRANSPORT` | 전송 방식 (`http`/`stdio`) | - |
 | `MCP_HOST` | 서버 호스트 (기본값: `0.0.0.0`) | - |
 | `MCP_PORT` | 서버 포트 (기본값: `8000`) | - |
-
-> ⚠️* 인증 방식: `ZENDESK_OAUTH_ACCESS_TOKEN`을 설정하면 OAuth Bearer 토큰 인증을 사용합니다.  
-> OAuth 토큰이 없는 경우 `ZENDESK_EMAIL` + `ZENDESK_API_TOKEN` 조합으로 API 토큰 인증을 사용합니다.  
-> OAuth 토큰이 우선적으로 사용됩니다.
 
 ## 🔌 클라이언트 연결
 
 ### Claude Desktop / Cursor
 
 `mcp.json` 또는 `mcp_settings.json`에 추가:
-
-**OAuth 액세스 토큰 사용:**
-
-```json
-{
-  "mcpServers": {
-    "zendesk": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-e", "ZENDESK_SUBDOMAIN=your-subdomain",
-        "-e", "ZENDESK_OAUTH_ACCESS_TOKEN=your-oauth-token",
-        "public.ecr.aws/saltware/zendesk-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-**API 토큰 사용:**
 
 ```json
 {

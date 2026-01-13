@@ -20,36 +20,18 @@ class ZendeskClient:
         self.subdomain = os.getenv("ZENDESK_SUBDOMAIN")
         self.email = os.getenv("ZENDESK_EMAIL")
         self.api_token = os.getenv("ZENDESK_API_TOKEN")
-        self.oauth_access_token = os.getenv("ZENDESK_OAUTH_ACCESS_TOKEN")
 
-        # OAuth 액세스 토큰이 있으면 우선 사용, 없으면 API 토큰 사용
-        self.use_oauth = bool(self.oauth_access_token)
-
-        if not self.use_oauth and not all([self.subdomain, self.email, self.api_token]):
+        if not all([self.subdomain, self.email, self.api_token]):
             raise ValueError(
                 "Missing Zendesk credentials. "
-                "Please set ZENDESK_OAUTH_ACCESS_TOKEN or "
-                "(ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, and ZENDESK_API_TOKEN)."
-            )
-
-        if not self.subdomain:
-            raise ValueError(
-                "Missing Zendesk subdomain. Please set ZENDESK_SUBDOMAIN."
+                "Please set ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, and ZENDESK_API_TOKEN."
             )
 
         self.base_url = f"https://{self.subdomain}.zendesk.com/api/v2"
 
-    def _get_auth(self) -> tuple[str, str] | None:
-        """API Token 인증 정보 반환 (OAuth 사용 시 None)"""
-        if self.use_oauth:
-            return None
+    def _get_auth(self) -> tuple[str, str]:
+        """API Token 인증 정보 반환"""
         return (f"{self.email}/token", self.api_token)
-
-    def _get_headers(self) -> dict[str, str]:
-        """요청 헤더 반환 (OAuth 사용 시 Bearer 토큰 포함)"""
-        if self.use_oauth:
-            return {"Authorization": f"Bearer {self.oauth_access_token}"}
-        return {}
 
     async def search_tickets(self, query: str) -> list[dict[str, Any]]:
         """
@@ -71,7 +53,6 @@ class ZendeskClient:
                     url,
                     params=params if "search.json" in url else None,
                     auth=self._get_auth(),
-                    headers=self._get_headers(),
                     timeout=30.0,
                 )
                 response.raise_for_status()
@@ -99,7 +80,6 @@ class ZendeskClient:
             response = await client.get(
                 f"{self.base_url}/tickets/{ticket_id}.json",
                 auth=self._get_auth(),
-                headers=self._get_headers(),
                 timeout=30.0,
             )
             response.raise_for_status()
@@ -120,7 +100,6 @@ class ZendeskClient:
             response = await client.get(
                 f"{self.base_url}/users/{user_id}.json",
                 auth=self._get_auth(),
-                headers=self._get_headers(),
                 timeout=30.0,
             )
             response.raise_for_status()
@@ -149,7 +128,6 @@ class ZendeskClient:
                 f"{self.base_url}/users/show_many.json",
                 params={"ids": ids_param},
                 auth=self._get_auth(),
-                headers=self._get_headers(),
                 timeout=30.0,
             )
             response.raise_for_status()

@@ -59,6 +59,8 @@ docker compose down
 
 ## 🐳 Docker 이미지 빌드
 
+### 단일 플랫폼 빌드 (로컬 테스트용)
+
 ```bash
 # 이미지 빌드
 docker build -t zendesk-mcp:latest .
@@ -76,21 +78,36 @@ docker run -d \
 docker stop zendesk-mcp-test && docker rm zendesk-mcp-test
 ```
 
+### 멀티플랫폼 빌드 (linux/amd64, linux/arm64)
+
+멀티플랫폼 이미지는 `docker buildx`를 사용하며, **빌드와 푸시를 동시에** 수행해야 합니다.
+
+```bash
+# buildx 빌더 생성 (최초 1회)
+docker buildx create --name multiplatform --use
+docker buildx inspect --bootstrap
+
+# 멀티플랫폼 빌드 + 푸시 (반드시 --push 옵션 필요)
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t your-registry/zendesk-mcp:latest \
+  -t your-registry/zendesk-mcp:1.0.0 \
+  --push .
+```
+
+> ⚠️ **중요**: `docker buildx`로 빌드한 멀티플랫폼 이미지는 로컬에 저장되지 않습니다.
+> 따라서 `--push` 옵션으로 빌드와 푸시를 한번에 수행해야 합니다.
+
 ## 📦 Docker Hub 배포
 
 ```bash
-# 이미지 빌드 멀티 플랫폼
-docker buildx build --platform linux/amd64,linux/arm64 -t saltware/zendesk:latest .
-
 # Docker Hub 로그인
 docker login
 
-# 이미지 푸시
-docker push saltware/zendesk-mcp:latest
-
-# 버전 태그 푸시 (선택)
-docker tag saltware/zendesk-mcp:latest saltware/zendesk-mcp:1.0.0
-docker push saltware/zendesk-mcp:1.0.0
+# 멀티플랫폼 빌드 + 푸시
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t saltware/zendesk-mcp:latest \
+  -t saltware/zendesk-mcp:1.0.0 \
+  --push .
 ```
 
 ## ☁️ AWS ECR Public 배포
@@ -103,23 +120,35 @@ aws ecr-public create-repository \
   --region us-east-1
 ```
 
-### 이미지 푸시
+### 이미지 푸시 (멀티플랫폼)
 
 ```bash
 # ECR Public 로그인
 aws ecr-public get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin public.ecr.aws/saltware
 
-# 이미지 빌드 및 태그
-docker buildx build --platform linux/amd64,linux/arm64 -t saltware/zendesk:latest .
-docker tag zendesk-mcp:latest public.ecr.aws/saltware/zendesk-mcp:latest
+# 멀티플랫폼 빌드 + 푸시
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t public.ecr.aws/saltware/zendesk-mcp:latest \
+  -t public.ecr.aws/saltware/zendesk-mcp:1.0.0 \
+  --push \
+  --no-cache .
+```
 
-# 이미지 푸시
-docker push public.ecr.aws/saltware/zendesk-mcp:latest
+### 기존 이미지 삭제
 
-# 버전 태그 푸시 (선택)
-docker tag zendesk-mcp:latest public.ecr.aws/saltware/zendesk-mcp:1.0.0
-docker push public.ecr.aws/saltware/zendesk-mcp:1.0.0
+```bash
+# 특정 태그 이미지 삭제
+aws ecr-public batch-delete-image \
+  --repository-name zendesk-mcp \
+  --region us-east-1 \
+  --image-ids imageTag=1.0.0
+
+# 여러 태그 삭제
+aws ecr-public batch-delete-image \
+  --repository-name zendesk-mcp \
+  --region us-east-1 \
+  --image-ids imageTag=1.0.0 imageTag=1.0.1
 ```
 
 ### 카탈로그 데이터 업데이트
@@ -201,14 +230,14 @@ EXCLUDED_TAGS = [
 
 ## 🔧 환경변수
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `ZENDESK_SUBDOMAIN` | Zendesk 서브도메인 | - |
-| `ZENDESK_EMAIL` | Zendesk API 사용자 이메일 | - |
-| `ZENDESK_API_TOKEN` | Zendesk API 토큰 | - |
-| `MCP_TRANSPORT` | 전송 방식 (http/stdio) | stdio |
-| `MCP_HOST` | 서버 호스트 | 0.0.0.0 |
-| `MCP_PORT` | 서버 포트 | 8000 |
+| 변수 | 설명 | 필수 | 기본값 |
+|------|------|:----:|--------|
+| `ZENDESK_SUBDOMAIN` | Zendesk 서브도메인 | ✅ | - |
+| `ZENDESK_EMAIL` | API 사용자 이메일 | ✅ | - |
+| `ZENDESK_API_TOKEN` | API 토큰 | ✅ | - |
+| `MCP_TRANSPORT` | 전송 방식 (http/stdio) | - | stdio |
+| `MCP_HOST` | 서버 호스트 | - | 0.0.0.0 |
+| `MCP_PORT` | 서버 포트 | - | 8000 |
 
 ## 📄 라이선스
 
