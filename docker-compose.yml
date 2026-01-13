@@ -1,0 +1,21 @@
+services:
+  zendesk-mcp:
+    build: .
+    image: zendesk-mcp:latest
+    container_name: zendesk-mcp
+    ports:
+      - "8000:8000"  # HTTP (Streamable HTTP) 포트
+    environment:
+      - ZENDESK_SUBDOMAIN=${ZENDESK_SUBDOMAIN}
+      - ZENDESK_EMAIL=${ZENDESK_EMAIL}
+      - ZENDESK_API_TOKEN=${ZENDESK_API_TOKEN}
+      - MCP_TRANSPORT=http
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
