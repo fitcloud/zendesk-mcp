@@ -16,23 +16,22 @@ Zendesk 티켓 데이터를 활용하여 AI Agent가 고객 지원 관련 인사
 ## 📋 사전 요구사항
 
 - Docker
-- Zendesk 계정 및 API 토큰
+- Zendesk 계정 및 API 토큰 또는 OAuth 액세스 토큰
 
 ## ⚡ 빠른 시작
 
-### Docker 실행
+### Docker 실행 (OAuth 액세스 토큰)
 
 ```bash
 docker run -d \
   --name zendesk-mcp \
   -p 8000:8000 \
   -e ZENDESK_SUBDOMAIN=your-subdomain \
-  -e ZENDESK_EMAIL=your-email@example.com \
-  -e ZENDESK_API_TOKEN=your-api-token \
-  saltware/zendesk-mcp:latest
+  -e ZENDESK_OAUTH_ACCESS_TOKEN=your-oauth-token \
+  public.ecr.aws/saltware/zendesk-mcp:latest
 ```
 
-또는 AWS ECR Public에서:
+### Docker 실행 (API 토큰)
 
 ```bash
 docker run -d \
@@ -66,6 +65,26 @@ docker run -d \
 
 `mcp.json` 또는 `mcp_settings.json`에 추가:
 
+**OAuth 액세스 토큰 사용:**
+
+```json
+{
+  "mcpServers": {
+    "zendesk": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "ZENDESK_SUBDOMAIN=your-subdomain",
+        "-e", "ZENDESK_OAUTH_ACCESS_TOKEN=your-oauth-token",
+        "public.ecr.aws/saltware/zendesk-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+**API 토큰 사용:**
+
 ```json
 {
   "mcpServers": {
@@ -76,7 +95,7 @@ docker run -d \
         "-e", "ZENDESK_SUBDOMAIN=your-subdomain",
         "-e", "ZENDESK_EMAIL=your-email@example.com",
         "-e", "ZENDESK_API_TOKEN=your-api-token",
-        "saltware/zendesk-mcp:latest"
+        "public.ecr.aws/saltware/zendesk-mcp:latest"
       ]
     }
   }

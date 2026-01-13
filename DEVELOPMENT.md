@@ -79,8 +79,8 @@ docker stop zendesk-mcp-test && docker rm zendesk-mcp-test
 ## 📦 Docker Hub 배포
 
 ```bash
-# 이미지 빌드
-docker build -t saltware/zendesk-mcp:latest .
+# 이미지 빌드 멀티 플랫폼
+docker buildx build --platform linux/amd64,linux/arm64 -t saltware/zendesk:latest .
 
 # Docker Hub 로그인
 docker login
@@ -111,7 +111,7 @@ aws ecr-public get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin public.ecr.aws/saltware
 
 # 이미지 빌드 및 태그
-docker build -t zendesk-mcp .
+docker buildx build --platform linux/amd64,linux/arm64 -t saltware/zendesk:latest .
 docker tag zendesk-mcp:latest public.ecr.aws/saltware/zendesk-mcp:latest
 
 # 이미지 푸시
