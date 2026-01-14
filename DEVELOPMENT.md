@@ -22,7 +22,7 @@ Zendesk MCP Server 개발 및 배포 가이드입니다.
 
 ```bash
 # 저장소 클론
-git clone https://github.com/saltware/zendesk-mcp.git
+git clone https://github.com/fitcloud/zendesk-mcp.git
 cd zendesk-mcp
 
 # 가상환경 설정

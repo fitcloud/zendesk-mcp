@@ -15,32 +15,28 @@ from src.utils.date_utils import format_period_string, get_date_range
 from src.utils.query_filters import get_exclusion_query
 
 
-def _build_field_query(
-    field: str, keywords: list[str], start_date: str, exclusion: str
+def _build_single_keyword_query(
+    field: str, keyword: str, start_date: str, exclusion: str
 ) -> str:
     """
-    특정 필드에 대한 Zendesk 검색 쿼리를 생성합니다.
+    단일 키워드에 대한 Zendesk 검색 쿼리를 생성합니다.
 
     Args:
         field: 검색할 필드 (tags, subject, description)
-        keywords: 검색할 키워드 목록
+        keyword: 검색할 키워드
         start_date: 검색 시작 날짜
         exclusion: 제외 조건 쿼리
 
     Returns:
         Zendesk 검색 쿼리 문자열
     """
-    # 같은 필드를 여러 번 사용하면 OR 조건으로 동작
-    # 예: subject:cloudwatch subject:monitoring
     if field == "tags":
         # 태그는 공백을 하이픈으로 변환
-        keyword_conditions = " ".join(
-            f"tags:{kw.lower().replace(' ', '-')}" for kw in keywords
-        )
+        keyword_condition = f"tags:{keyword.lower().replace(' ', '-')}"
     else:
-        keyword_conditions = " ".join(f"{field}:{kw}" for kw in keywords)
+        keyword_condition = f"{field}:{keyword}"
 
-    return f"type:ticket {keyword_conditions} created>{start_date} {exclusion}"
+    return f"type:ticket {keyword_condition} created>{start_date} {exclusion}"
 
 
 def _merge_tickets(ticket_lists: list[list[dict]]) -> list[dict]:
@@ -82,9 +78,9 @@ async def search_tickets_with_keywords(
     Agent가 ISV 카테고리를 관련 키워드로 매핑한 후 이 도구를 호출합니다.
 
     검색 전략:
-    - tags, subject, description 필드에서 각각 검색
-    - 서로 다른 필드 간에는 OR 연산이 불가하므로 별도 검색 후 결과 병합
-    - 동일 티켓 중복 제거
+    - 각 키워드별로 tags, subject, description 필드에서 개별 검색
+    - 모든 검색 결과를 병합하고 중복 제거
+    - 고객사별로 집계
 
     Args:
         keywords: 검색할 키워드 목록 (OR 조건으로 검색)
@@ -101,17 +97,19 @@ async def search_tickets_with_keywords(
     # 참고: https://support.zendesk.com/hc/en-us/articles/4408886879258
     #
     # Zendesk 검색 특성:
-    # - 같은 속성을 여러 번 사용하면 OR 로직으로 동작
-    # - 서로 다른 속성 간에는 AND 로직이 기본
-    # - 따라서 tags, subject, description을 각각 검색하고 결과를 병합
+    # - 같은 속성을 여러 번 사용해도 AND 로직으로 동작하는 경우가 있음
+    # - 따라서 각 키워드별로 개별 검색 후 결과를 병합
     search_fields = ["tags", "subject", "description"]
 
-    # 각 필드에 대해 병렬로 검색 수행
-    queries = [
-        _build_field_query(field, keywords, start_date, exclusion)
-        for field in search_fields
-    ]
+    # 각 키워드 + 각 필드 조합에 대해 개별 쿼리 생성
+    queries = []
+    for keyword in keywords:
+        for field in search_fields:
+            queries.append(
+                _build_single_keyword_query(field, keyword, start_date, exclusion)
+            )
 
+    # 병렬로 검색 수행
     search_tasks = [client.search_tickets(query) for query in queries]
     results = await asyncio.gather(*search_tasks, return_exceptions=True)
 
