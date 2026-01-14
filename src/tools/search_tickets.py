@@ -44,14 +44,20 @@ async def search_tickets(
     client = ZendeskClient()
 
     # Zendesk 검색 쿼리 구성
-    search_query = f"type:ticket {query} {get_exclusion_query()}"
+    # 참고: https://support.zendesk.com/hc/en-us/articles/4408886879258
+    query_parts = ["type:ticket", query]
 
     if status:
-        search_query += f" status:{status}"
+        query_parts.append(f"status:{status}")
 
     if period_days:
         start_date, _ = get_date_range(period_days)
-        search_query += f" created>{start_date}"
+        query_parts.append(f"created>{start_date}")
+
+    # 제외 조건 추가
+    query_parts.append(get_exclusion_query())
+
+    search_query = " ".join(query_parts)
 
     tickets = await client.search_tickets(search_query)
 

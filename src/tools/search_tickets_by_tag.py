@@ -37,7 +37,10 @@ async def search_tickets_by_tag(
     start_date, _ = get_date_range(period_days)
 
     # Zendesk 검색 쿼리 구성
-    query = f"type:ticket tags:{service_tag} created>{start_date} {get_exclusion_query()}"
+    # 참고: https://support.zendesk.com/hc/en-us/articles/4408886879258
+    # 태그에 공백이나 특수문자가 있으면 하이픈으로 변환 (Zendesk 태그 규칙)
+    normalized_tag = service_tag.lower().replace(" ", "-")
+    query = f"type:ticket tags:{normalized_tag} created>{start_date} {get_exclusion_query()}"
 
     tickets = await client.search_tickets(query)
 
