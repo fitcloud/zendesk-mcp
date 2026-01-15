@@ -6,8 +6,10 @@ FastMCP 기반 MCP 서버 - Zendesk 티켓 데이터 분석
 
 import os
 
+import uvicorn
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.server.http import create_streamable_http_app
 
 from src.tools import (
     get_service_trends,
@@ -36,20 +38,24 @@ mcp.tool(get_ticket_details)
 mcp.tool(get_top_agents)
 mcp.tool(get_service_trends)
 
+# Streamable HTTP 앱 생성 (Accept 헤더 기반 자동 선택)
+# json_response 생략 → 클라이언트 Accept 헤더에 따라 JSON/SSE 자동 결정
+app = create_streamable_http_app(
+    mcp,
+    streamable_http_path="/mcp",
+)
+
 
 def main():
     """MCP 서버 시작"""
-    # 환경변수에서 설정 읽기 (기본값: HTTP 모드)
-    transport = os.getenv("MCP_TRANSPORT", "http")
     host = os.getenv("MCP_HOST", "0.0.0.0")
     port = int(os.getenv("MCP_PORT", "8000"))
 
     print(f"🚀 Starting Zendesk MCP Server...", flush=True)
-    print(f"   Transport: {transport}", flush=True)
-    print(f"   Host: {host}", flush=True)
-    print(f"   Port: {port}", flush=True)
+    print(f"   Endpoint: http://{host}:{port}/mcp", flush=True)
+    print(f"   Mode: Streamable HTTP (Accept header auto-detection)", flush=True)
 
-    mcp.run(transport=transport, host=host, port=port)
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
