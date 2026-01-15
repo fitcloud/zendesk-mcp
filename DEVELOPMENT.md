@@ -182,9 +182,7 @@ zendesk-mcp/
 │   ├── server.py             # MCP 서버 설정
 │   ├── tools/
 │   │   ├── __init__.py
-│   │   ├── search_tickets.py
-│   │   ├── search_tickets_by_tag.py
-│   │   ├── search_tickets_with_keywords.py
+│   │   ├── search_tickets.py      # 통합 검색 도구
 │   │   ├── get_ticket_details.py
 │   │   ├── get_top_agents.py
 │   │   └── get_service_trends.py
